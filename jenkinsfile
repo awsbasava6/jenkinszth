@@ -1,0 +1,55 @@
+pipeline {
+    agent none
+    environment {
+        MYSQL_CREDENTIALS = credentials('mysql-credentials-id')
+    }
+    stages {
+        stage('Build with Maven') {
+            agent {
+                docker {
+                    image 'maven:3.8.1-jdk-11'
+                    args '-v $HOME/.m2:/root/.m2'
+                }
+            }
+            steps {
+                git url: 'https://github.com/awsbasava6/jenkinszth/maven-project.git'
+                withMaven(maven: 'maven-3') {
+                    sh 'mvn clean package'
+                }
+                stash includes: 'target/*.jar', name: 'jar'
+            }
+        }
+        stage('Install Node.js Dependencies') {
+            agent {
+                docker {
+                    image 'node:14'
+                }
+            }
+            steps {
+                git url: 'https://github.com/awsbasava6/jenkinszth/nodejs-project.git'
+                sh 'npm install'
+                stash includes: 'node_modules/**', name: 'node_modules'
+            }
+        }
+        stage('Integration Tests with MySQL') {
+            agent {
+                docker {
+                    image 'mysql:8.0'
+                    args '--env MYSQL_ROOT_PASSWORD=${MYSQL_CREDENTIALS_PSW}'
+                }
+            }
+            steps {
+                unstash 'jar'
+                unstash 'node_modules'
+                sh 'java -jar target/your-app.jar &'
+                sh 'npm test'
+            }
+            post {
+                always {
+                    junit 'test-results/*.xml'
+                }
+            }
+        }
+    }
+}
+
