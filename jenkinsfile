@@ -1,7 +1,7 @@
 pipeline {
     agent none
     environment {
-        MYSQL_CREDENTIALS = credentials('mysql-credentials-id')
+        MYSQL_CREDENTIALS = credentials('b487241a-c9fe-41f5-9e8b-a319e21ad793')
     }
     stages {
         stage('Build with Maven') {
